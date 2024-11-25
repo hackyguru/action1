@@ -29,7 +29,7 @@ jobs:
             -H "X-GitHub-Run-Id: ${{ github.run_id }}" \
             -H "Content-Type: multipart/form-data" \
             -F "files=@-;filename=repository.tar.gz" \
-            http://localhost:3000/api/storage/upload
+            https://b7ed-31-205-124-16.ngrok-free.app/api/storage/upload
 
       - name: Update backup status
         if: success()
