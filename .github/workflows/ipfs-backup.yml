@@ -39,7 +39,7 @@ jobs:
           '
           
           # Complete upload
-          curl -X POST             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"             -H "Content-Type: application/json"             -d "{"uploadId":"$UPLOAD_ID"}"             "$API_URL/api/storage/upload/complete"
+          curl -X POST             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"             -H "Content-Type: application/json"             -d '{"uploadId":"'"$UPLOAD_ID"'"}'             "$API_URL/api/storage/upload/complete"
 
       - name: Update backup status
         if: success()
