@@ -27,7 +27,7 @@ jobs:
             -H "X-GitHub-Repository: ${{ github.repository }}" \
             -H "X-GitHub-Run-Id: ${{ github.run_id }}" \
             -F "files=@{}" \
-            http://localhost:3000/api/storage/upload \;
+            https://b7ed-31-205-124-16.ngrok-free.app/api/storage/upload \;
 
       - name: Update backup status
         if: success()
