@@ -23,23 +23,39 @@ jobs:
         run: |
           # Generate unique upload ID
           UPLOAD_ID=$(date +%s)-${{ github.run_id }}
+          echo "Upload ID: $UPLOAD_ID"
+          
+          # Set API URL
+          API_URL="${{ vars.NEXT_PUBLIC_API_URL || 'https://b7ed-31-205-124-16.ngrok-free.app' }}"
+          echo "API URL: $API_URL"
           
           # Calculate total chunks
           CHUNK_SIZE=50000000 # 50MB chunks
           TOTAL_CHUNKS=$(tar -czf - --exclude='.git' . | wc -c | awk -v size=$CHUNK_SIZE '{print int(($1+size-1)/size)}')
+          echo "Total chunks: $TOTAL_CHUNKS"
           
-          # Set API URL
-          API_URL="${{ vars.NEXT_PUBLIC_API_URL || 'https://b7ed-31-205-124-16.ngrok-free.app' }}"
+          # Create temporary directory for chunks
+          TEMP_DIR=$(mktemp -d)
+          echo "Temp directory: $TEMP_DIR"
           
-          # Split and upload chunks
+          # Split repository into chunks
+          cd $TEMP_DIR
+          tar -C $GITHUB_WORKSPACE -czf - --exclude='.git' . | split -b $CHUNK_SIZE - chunk-
+          
+          # Upload each chunk
           CHUNK_NUM=1
-          tar -czf - --exclude='.git' . | split -b $CHUNK_SIZE --filter '
-            curl -X POST               -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"               -H "X-GitHub-Repository: ${{ github.repository }}"               -H "X-Upload-Id: '"$UPLOAD_ID"'"               -H "X-Chunk-Number: '"$CHUNK_NUM"'"               -H "X-Total-Chunks: '"$TOTAL_CHUNKS"'"               -F "chunk=@-"               "$API_URL/api/storage/upload/chunk";
+          for chunk in chunk-*; do
+            echo "Uploading chunk $CHUNK_NUM of $TOTAL_CHUNKS"
+            curl -X POST               -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"               -H "X-GitHub-Repository: ${{ github.repository }}"               -H "X-Upload-Id: $UPLOAD_ID"               -H "X-Chunk-Number: $CHUNK_NUM"               -H "X-Total-Chunks: $TOTAL_CHUNKS"               -F "chunk=@$chunk"               "$API_URL/api/storage/upload/chunk"
             CHUNK_NUM=$((CHUNK_NUM+1))
-          '
+          done
+          
+          # Cleanup temporary directory
+          rm -rf $TEMP_DIR
           
           # Complete upload
-          curl -X POST             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"             -H "Content-Type: application/json"             -d '{"uploadId":"'"$UPLOAD_ID"'"}'             "$API_URL/api/storage/upload/complete"
+          echo "Completing upload..."
+          curl -X POST             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"             -H "Content-Type: application/json"             -d "{"uploadId":"$UPLOAD_ID"}"             "$API_URL/api/storage/upload/complete"
 
       - name: Update backup status
         if: success()
