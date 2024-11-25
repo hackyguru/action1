@@ -1,0 +1,37 @@
+
+name: IPFS Backup
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Upload to IPFS
+        run: |
+          # Create form data with all repository files
+          find . -type f -not -path './.git/*' -exec curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "X-GitHub-Repository: ${{ github.repository }}" \
+            -H "X-GitHub-Run-Id: ${{ github.run_id }}" \
+            -F "files=@{}" \
+            http://localhost:3000/api/storage/upload \;
+
+      - name: Update backup status
+        if: success()
+        run: |
+          echo "✅ Backup completed successfully"
+          echo "Repository: ${{ github.repository }}"
+          echo "Run ID: ${{ github.run_id }}"
