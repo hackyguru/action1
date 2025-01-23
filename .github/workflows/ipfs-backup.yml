@@ -31,8 +31,12 @@ jobs:
           COMMIT_HASH: ${{ steps.commit.outputs.hash }}
         run: |
           # Set API URL and timeout
-          API_URL="${{ vars.NEXT_PUBLIC_API_URL || 'https://abe1-31-205-111-23.ngrok-free.app' }}"
-          CURL_TIMEOUT=300  # 5 minutes timeout
+          API_URL="${{ vars.NEXT_PUBLIC_API_URL || 'https://gitvault.xyz' }}"
+          # Ensure API URL has no trailing slash
+          API_URL=$(echo "$API_URL" | sed 's#/$##')
+          # Force HTTPS
+          API_URL=$(echo "$API_URL" | sed 's#^http://#https://#')
+          
           echo "API URL: $API_URL"
           
           # Calculate total chunks with smaller chunk size
@@ -69,6 +73,8 @@ jobs:
                 -H "X-GitHub-Username: ${{ github.actor }}" \
                 -H "X-Backup-Owner: ${{ github.actor }}" \
                 -F "chunk=@$chunk" \
+                --location \
+                --fail-with-body \
                 "$API_URL/api/storage/upload/chunk" || echo "CURL_ERROR")
               
               if [ "$RESPONSE" = "CURL_ERROR" ]; then
@@ -115,6 +121,8 @@ jobs:
               -H "X-GitHub-Username: ${{ github.actor }}" \
               -H "X-Backup-Owner: ${{ github.actor }}" \
               -d "{\"uploadId\":\"${{ env.UPLOAD_ID }}\"}" \
+              --location \
+              --fail-with-body \
               "$API_URL/api/storage/upload/complete" || echo "CURL_ERROR")
             
             if [ "$COMPLETE_RESPONSE" = "CURL_ERROR" ]; then
